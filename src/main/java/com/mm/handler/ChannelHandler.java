@@ -8,7 +8,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
-public class WebSocketChannelHandler extends ChannelInitializer<SocketChannel> {
+public class ChannelHandler extends ChannelInitializer<SocketChannel> {
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
         ch.pipeline()
@@ -22,7 +22,7 @@ public class WebSocketChannelHandler extends ChannelInitializer<SocketChannel> {
                 //用于大数据的分区传输
                 .addLast(new ChunkedWriteHandler())
                 //自定义的业务handler
-                .addLast(new WebSocketServerHandler())
+                .addLast(new ServerHandler())
                 //指定url
                 .addLast(new WebSocketServerProtocolHandler("/ws", null, true,
                         65536 * 10));

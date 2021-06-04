@@ -1,6 +1,6 @@
 package com.mm;
 
-import com.mm.handler.WebSocketChannelHandler;
+import com.mm.handler.ChannelHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
@@ -19,7 +19,7 @@ public class App {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(eventLoopGroup, workGroup);
             bootstrap.channel(NioServerSocketChannel.class);
-            bootstrap.childHandler(new WebSocketChannelHandler());
+            bootstrap.childHandler(new ChannelHandler());
             Channel channel = bootstrap.bind(8888).sync().channel();
             log.info("websocket服务器启动成功：{}", channel);
             channel.closeFuture().sync();

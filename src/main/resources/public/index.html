@@ -15,7 +15,7 @@
 
 <body>
 
-昵称：<input type="text" id="nickname"/>
+昵称：<input type="text" id="username"/>
 <button onclick="connectWebSocket()">连接WebSocket</button>
 <button onclick="closeWebSocket()">断开连接</button>
 <hr/>
@@ -31,21 +31,21 @@
 <script type="text/javascript">
     var ws = null;
     function connectWebSocket() {
-        var nickname = document.getElementById("nickname").value;
-        if (nickname == "") {
+        var username = document.getElementById("username").value;
+        if (username == "") {
             alert("请输入昵称");
             return;
         }
         //判断当前浏览器是否支持WebSocket
         if ('WebSocket' in window) {
-            ws = new WebSocket("ws://127.0.0.1:8888/ws/");
+            ws = new WebSocket("ws://127.0.0.1:8888/ws/" + username);
         } else {
             alert('Not support websocket')
         }
 
         //连接成功建立的回调方法
         ws.onopen = function (event) {
-            setMessageInnerHTML("Loc MSG: 成功建立连接");
+            setMessageInnerHTML("成功建立连接");
         }
 
         //接收到消息的回调方法
@@ -55,7 +55,7 @@
 
         //连接关闭的回调方法
         ws.onclose = function () {
-            setMessageInnerHTML("Loc MSG:关闭连接");
+            setMessageInnerHTML("关闭连接");
         }
 
         //连接发生错误的回调方法

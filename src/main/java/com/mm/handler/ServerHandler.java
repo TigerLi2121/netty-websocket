@@ -1,5 +1,7 @@
 package com.mm.handler;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mm.config.NettyConfig;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelFuture;
@@ -8,7 +10,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.*;
+import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 /**
  * 处理接收消息
@@ -16,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
  * @author lwl
  */
 @Slf4j
-public class WebSocketServerHandler extends SimpleChannelInboundHandler {
+public class ServerHandler extends SimpleChannelInboundHandler {
     private WebSocketServerHandshaker wsh;
 
     private String getWebSocketLocation(FullHttpRequest request) {
@@ -81,27 +85,38 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
         ctx.close();
     }
 
-    private void handleWebSocketRequest(ChannelHandlerContext ctx, WebSocketFrame frame) {
+    private void handleWebSocketRequest(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
         //判断是否是关闭websocket的指令
         if (frame instanceof CloseWebSocketFrame) {
             wsh.close(ctx.channel(), (CloseWebSocketFrame) frame.retain());
             return;
         }
-        //握手 PING/PONG
+        //判断是否是ping消息
         if (frame instanceof PingWebSocketFrame) {
-            ctx.write(new PongWebSocketFrame(frame.content().retain()));
+            ctx.channel().write(new PongWebSocketFrame(frame.content().retain()));
             return;
+        }
+        //判断是否是二进制消息
+        if (!(frame instanceof TextWebSocketFrame)) {
+            log.debug("不支持二进制消息");
+            throw new UnsupportedOperationException(String.format("%s frame types not supported",
+                    frame.getClass().getName()));
         }
         //文本接收和发送
-        if (frame instanceof TextWebSocketFrame) {
-            String msg = ((TextWebSocketFrame) frame).text();
-            log.debug("msg:{}", msg);
-            ctx.writeAndFlush(new TextWebSocketFrame(msg));
-            return;
-        }
-
-        if (frame instanceof BinaryWebSocketFrame) {
-            ctx.write(frame.retain());
+        String request = ((TextWebSocketFrame) frame).text();
+        log.debug("服务端收到客户端的消息：{}", request);
+        JsonNode node = new ObjectMapper().readTree(request);
+        TextWebSocketFrame msg = new TextWebSocketFrame(node.get("msg").asText());
+        if (1 == node.get("type").asInt()) {
+            String toUser = node.get("toUser").asText();
+            if (NettyConfig.userMap.get(toUser) != null) {
+                NettyConfig.userMap.get(toUser).channel().writeAndFlush(msg);
+            } else {
+                log.debug("{}:不在线", toUser);
+            }
+        } else {
+            //服务端向每个连接上来的客户端发送消息
+            NettyConfig.group.writeAndFlush(msg);
         }
     }
 
@@ -115,7 +130,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
     private void handHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req) {
         //判断是否http握手请求
         if (!req.decoderResult().isSuccess() || !("websocket".equals(req.headers().get("Upgrade")))) {
-            sendResponse(ctx, req, new DefaultFullHttpResponse(req.protocolVersion(), HttpResponseStatus.BAD_REQUEST));
+            sendHttpResponse(ctx, req, new DefaultFullHttpResponse(req.protocolVersion(), HttpResponseStatus.BAD_REQUEST));
             return;
         }
         WebSocketServerHandshakerFactory factory = new WebSocketServerHandshakerFactory(getWebSocketLocation(req),
@@ -124,6 +139,15 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
         if (wsh == null) {
             WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
         } else {
+            String url = req.uri();
+            log.info("url:{}", url);
+            String userId = url.replace("/ws/", "");
+            log.info("userId:{}", userId);
+            if (!StringUtils.hasText(userId)) {
+                sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND));
+                return;
+            }
+            NettyConfig.userMap.put(userId, ctx);
             wsh.handshake(ctx.channel(), req);
         }
     }
@@ -135,7 +159,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
      * @param req
      * @param resp
      */
-    private void sendResponse(ChannelHandlerContext ctx, FullHttpRequest req, FullHttpResponse resp) {
+    private void sendHttpResponse(ChannelHandlerContext ctx, FullHttpRequest req, FullHttpResponse resp) {
         HttpResponseStatus status = resp.status();
         if (status != HttpResponseStatus.OK) {
             ByteBufUtil.writeUtf8(resp.content(), status.toString());
