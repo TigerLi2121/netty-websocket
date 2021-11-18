@@ -1,5 +1,5 @@
 plugins {
-    id 'org.springframework.boot' version '2.4.3'
+    id 'org.springframework.boot' version '2.4.13'
     id 'io.spring.dependency-management' version '1.0.11.RELEASE'
     id 'java'
 }
@@ -9,6 +9,7 @@ version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '1.8'
 
 repositories {
+    maven { url 'https://maven.aliyun.com/repository/public/' }
     mavenCentral()
 }
 
@@ -19,6 +20,7 @@ ext {
 dependencies {
     implementation(
         'org.springframework.boot:spring-boot-starter-web',
+        'org.springframework.boot:spring-boot-starter-data-redis',
         'org.springframework.boot:spring-boot-starter-actuator',
         'de.codecentric:spring-boot-admin-starter-client',
         "io.netty:netty-all",
