@@ -1,9 +1,12 @@
 package com.mm.config;
 
+import com.mm.util.RedisUtil;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.util.concurrent.GlobalEventExecutor;
+import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,7 +16,28 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author lwl
  */
+@Component
 public class NettyConfig {
-    public static ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-    public static Map<String, ChannelHandlerContext> userMap = new ConcurrentHashMap<>();
+
+    public static final String NETTY_TOPIC = "netty_topic";
+
+    public static Map<String, Channel> channelIdChannelMap = new ConcurrentHashMap<>();
+    /**
+     * 设备id - channelId
+     */
+    public static Map<String, String> deviceIdChannelIdMap = new ConcurrentHashMap<>();
+
+    /**
+     * 删除 cache channel
+     * @param channelId
+     */
+    public static void delChannel(String channelId) {
+        channelIdChannelMap.remove(channelId);
+        deviceIdChannelIdMap.forEach((k, v)->{
+            if (v.equals(channelId)) {
+                deviceIdChannelIdMap.remove(k);
+            }
+        });
+    }
+
 }

@@ -1,18 +1,14 @@
 package com.mm.handler;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import cn.hutool.json.JSONUtil;
 import com.mm.config.NettyConfig;
+import com.mm.dto.WsMsgDto;
+import com.mm.util.RedisUtil;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.*;
-import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
 
 /**
  * 处理接收消息
@@ -30,7 +26,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        log.debug("收到消息：{}", msg);
+        log.debug("有收到消息：{}", msg);
         // HTTP接入
         if (msg instanceof FullHttpRequest) {
             handHttpRequest(ctx, (FullHttpRequest) msg);
@@ -45,8 +41,9 @@ public class ServerHandler extends SimpleChannelInboundHandler {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        NettyConfig.group.add(ctx.channel());
-        log.debug("客户端加入连接：{}, 当前在线总数:{}", ctx.channel().id(), NettyConfig.group.size());
+        Channel channel = ctx.channel();
+        NettyConfig.channelIdChannelMap.put(channel.id().toString(), channel);
+        log.debug("客户端加入连接：{}, 当前在线总数:{}", ctx.channel().id(), NettyConfig.channelIdChannelMap.size());
     }
 
     /**
@@ -57,19 +54,8 @@ public class ServerHandler extends SimpleChannelInboundHandler {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        NettyConfig.group.remove(ctx.channel());
-        log.debug("客户端断开连接：{}, 当前在线总数:{}", ctx.channel().id(), NettyConfig.group.size());
-    }
-
-    /**
-     * 服务端接收客户端发送过来的数据结束之后调用
-     *
-     * @param ctx
-     * @throws Exception
-     */
-    @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-        ctx.flush();
+        NettyConfig.delChannel(ctx.channel().id().toString());
+        log.debug("客户端断开连接：{}, 当前在线总数:{}", ctx.channel().id(), NettyConfig.channelIdChannelMap.size());
     }
 
     /**
@@ -81,7 +67,8 @@ public class ServerHandler extends SimpleChannelInboundHandler {
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        cause.printStackTrace();
+        log.error("exceptionCaught e:", cause.getMessage());
+        NettyConfig.delChannel(ctx.channel().id().toString());
         ctx.close();
     }
 
@@ -103,21 +90,10 @@ public class ServerHandler extends SimpleChannelInboundHandler {
                     frame.getClass().getName()));
         }
         //文本接收和发送
-        String request = ((TextWebSocketFrame) frame).text();
-        log.debug("服务端收到客户端的消息：{}", request);
-        JsonNode node = new ObjectMapper().readTree(request);
-        TextWebSocketFrame msg = new TextWebSocketFrame(node.get("msg").asText());
-        if (1 == node.get("type").asInt()) {
-            String toUser = node.get("toUser").asText();
-            if (NettyConfig.userMap.get(toUser) != null) {
-                NettyConfig.userMap.get(toUser).channel().writeAndFlush(msg);
-            } else {
-                log.debug("{}:不在线", toUser);
-            }
-        } else {
-            //服务端向每个连接上来的客户端发送消息
-            NettyConfig.group.writeAndFlush(msg);
-        }
+        String msg = ((TextWebSocketFrame) frame).text();
+        log.debug("channelId:{}, msg：{}", ctx.channel().id(), msg);
+        RedisUtil.redisTemplate.convertAndSend(NettyConfig.NETTY_TOPIC,
+                JSONUtil.toJsonStr(new WsMsgDto(ctx.channel().id().toString(), msg)));
     }
 
 
@@ -141,13 +117,14 @@ public class ServerHandler extends SimpleChannelInboundHandler {
         } else {
             String url = req.uri();
             log.info("url:{}", url);
-            String userId = url.replace("/ws/", "");
-            log.info("userId:{}", userId);
-            if (!StringUtils.hasText(userId)) {
-                sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND));
-                return;
-            }
-            NettyConfig.userMap.put(userId, ctx);
+            String deviceId = url.replace("/ws/", "");
+            log.info("deviceId:{}", deviceId);
+//            if (!StringUtils.hasText(userId)) {
+//                sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND));
+//                return;
+//            }
+//            NettyConfig.userMap.put(userId, ctx);
+            NettyConfig.deviceIdChannelIdMap.put(deviceId, ctx.channel().id().toString());
             wsh.handshake(ctx.channel(), req);
         }
     }

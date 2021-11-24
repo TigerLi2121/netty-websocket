@@ -19,12 +19,13 @@ ext {
 
 dependencies {
     implementation(
-        'org.springframework.boot:spring-boot-starter-web',
-        'org.springframework.boot:spring-boot-starter-data-redis',
-        'org.springframework.boot:spring-boot-starter-actuator',
-        'de.codecentric:spring-boot-admin-starter-client',
-        "io.netty:netty-all",
-        'org.projectlombok:lombok',
+            'org.springframework.boot:spring-boot-starter-web',
+            'org.springframework.boot:spring-boot-starter-data-redis',
+            'org.springframework.boot:spring-boot-starter-actuator',
+            'de.codecentric:spring-boot-admin-starter-client',
+            "io.netty:netty-all",
+            'org.projectlombok:lombok',
+            'cn.hutool:hutool-all:5.7.16',
     )
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

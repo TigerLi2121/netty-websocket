@@ -23,7 +23,7 @@
 
 <br/>
 消息：<input id="text" type="text"/>
-频道号<input id="toUser" type="text"/>
+频道号<input id="to_device_id" type="text"/>
 <button onclick="send()">发送消息</button>
 <div id="message"></div>
 </body>
@@ -38,7 +38,7 @@
         }
         //判断当前浏览器是否支持WebSocket
         if ('WebSocket' in window) {
-            ws = new WebSocket("ws://127.0.0.1:8888/ws/" + username);
+            ws = new WebSocket("ws://127.0.0.1:8889/ws/"+username);
         } else {
             alert('Not support websocket')
         }
@@ -83,9 +83,9 @@
     function send() {
         //获取输入的文本信息进行发送
         var message = document.getElementById('text').value;
-        var toUser = document.getElementById('toUser').value;
-        var socketMsg = {msg: message, toUser: toUser};
-        if (toUser == '') {
+        var toDeviceId = document.getElementById('to_device_id').value;
+        var socketMsg = {msg: message, to_device_id: toDeviceId};
+        if (toDeviceId == '') {
             //群聊.
             socketMsg.type = 0;
         } else {
