@@ -27,11 +27,6 @@ public class RedisListener implements MessageListener {
         String body = new String(message.getBody());
         log.debug("topic:{} body:{}", new String(message.getChannel()), body);
         WsMsgDto wsMsgDto = JSONUtil.toBean(body, WsMsgDto.class);
-//        Channel channel = NettyConfig.group.get(wsMsgDto.getChannelId());
-//        if (channel == null) {
-//            log.debug("client not exist");
-//            return;
-//        }
         JSONObject wsBody = JSONUtil.parseObj(wsMsgDto.getBody());
         TextWebSocketFrame wsMsg = new TextWebSocketFrame(wsBody.getStr("msg"));
         if (1 == wsBody.getInt("type")) {
