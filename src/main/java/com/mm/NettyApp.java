@@ -21,6 +21,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * netty server
+ *
  * @author lwl
  */
 @Slf4j
@@ -59,7 +60,7 @@ public class NettyApp implements ApplicationRunner {
                                     65536 * 10));
                 }
             });
-            Channel channel = bootstrap.bind(8889).sync().channel();
+            Channel channel = bootstrap.bind(8888).sync().channel();
             log.info("websocket服务器启动成功：{}", channel);
             channel.closeFuture().sync();
         } catch (Exception e) {

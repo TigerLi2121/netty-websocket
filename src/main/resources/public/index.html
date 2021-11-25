@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+    <meta charset="utf-8">
     <title>My WebSocket</title>
 
     <style>
@@ -30,6 +31,7 @@
 
 <script type="text/javascript">
     var ws = null;
+
     function connectWebSocket() {
         var username = document.getElementById("username").value;
         if (username == "") {
@@ -38,7 +40,7 @@
         }
         //判断当前浏览器是否支持WebSocket
         if ('WebSocket' in window) {
-            ws = new WebSocket("ws://127.0.0.1:8889/ws/"+username);
+            ws = new WebSocket("ws://127.0.0.1:8888/ws/" + username);
         } else {
             alert('Not support websocket')
         }
