@@ -6,12 +6,10 @@ import com.mm.config.NettyConfig;
 import com.mm.dto.WsMsgDto;
 import com.mm.util.RedisUtil;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.*;
+import io.netty.handler.ssl.SslHandler;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -28,9 +26,12 @@ public class ServerHandler extends SimpleChannelInboundHandler {
         this.websocketPath = websocketPath;
     }
 
-    private String getWebSocketLocation(FullHttpRequest request) {
-        String location = request.headers().get(HttpHeaderNames.HOST) + websocketPath;
-        return "ws://" + location;
+    private String getWebSocketLocation(ChannelPipeline cp, FullHttpRequest req) {
+        String protocol = "ws";
+        if (cp.get(SslHandler.class) != null) {
+            protocol = "wss";
+        }
+        return protocol + "://" + req.headers().get(HttpHeaderNames.HOST) + websocketPath;
     }
 
     @Override
@@ -118,8 +119,8 @@ public class ServerHandler extends SimpleChannelInboundHandler {
             sendHttpResponse(ctx, req, new DefaultFullHttpResponse(req.protocolVersion(), HttpResponseStatus.BAD_REQUEST));
             return;
         }
-        WebSocketServerHandshakerFactory factory = new WebSocketServerHandshakerFactory(getWebSocketLocation(req),
-                null, false);
+        WebSocketServerHandshakerFactory factory = new WebSocketServerHandshakerFactory(
+                getWebSocketLocation(ctx.pipeline(), req), null, false);
         wsh = factory.newHandshaker(req);
         if (wsh == null) {
             WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
