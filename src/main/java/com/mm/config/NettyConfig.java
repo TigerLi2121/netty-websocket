@@ -1,10 +1,15 @@
 package com.mm.config;
 
+import com.mm.listener.RedisListener;
 import io.netty.channel.Channel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.util.concurrent.GlobalEventExecutor;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author lwl
  */
-@Component
+@Configuration
 public class NettyConfig {
 
     public static final String NETTY_TOPIC = "netty_topic";
@@ -52,4 +57,11 @@ public class NettyConfig {
         });
     }
 
+    @Bean
+    public RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.addMessageListener(new RedisListener(), new ChannelTopic(NETTY_TOPIC));
+        return container;
+    }
 }
