@@ -1,11 +1,15 @@
 package com.mm.handler;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.mm.config.NettyConfig;
 import com.mm.dto.WsMsgDto;
 import com.mm.util.RedisUtil;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.*;
 import lombok.extern.slf4j.Slf4j;
@@ -17,10 +21,15 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ServerHandler extends SimpleChannelInboundHandler {
+    private String websocketPath;
     private WebSocketServerHandshaker wsh;
 
+    public ServerHandler(String websocketPath) {
+        this.websocketPath = websocketPath;
+    }
+
     private String getWebSocketLocation(FullHttpRequest request) {
-        String location = request.headers().get(HttpHeaderNames.HOST) + "/ws";
+        String location = request.headers().get(HttpHeaderNames.HOST) + websocketPath;
         return "ws://" + location;
     }
 
@@ -41,8 +50,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        Channel channel = ctx.channel();
-        NettyConfig.channelIdChannelMap.put(channel.id().toString(), channel);
+        NettyConfig.addChannel(ctx.channel());
         log.debug("客户端加入连接：{}, 当前在线总数:{}", ctx.channel().id(), NettyConfig.channelIdChannelMap.size());
     }
 
@@ -67,7 +75,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        log.error("exceptionCaught e:", cause.getMessage());
+        log.error("exceptionCaught e:", cause);
         NettyConfig.delChannel(ctx.channel().id().toString());
         ctx.close();
     }
@@ -105,7 +113,8 @@ public class ServerHandler extends SimpleChannelInboundHandler {
      */
     private void handHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req) {
         //判断是否http握手请求
-        if (!req.decoderResult().isSuccess() || !("websocket".equals(req.headers().get("Upgrade")))) {
+        String upgrade = req.headers().get(StrUtil.upperFirst(HttpHeaderValues.UPGRADE.toString()));
+        if (!req.decoderResult().isSuccess() || !(HttpHeaderValues.WEBSOCKET.toString().equals(upgrade))) {
             sendHttpResponse(ctx, req, new DefaultFullHttpResponse(req.protocolVersion(), HttpResponseStatus.BAD_REQUEST));
             return;
         }
@@ -117,13 +126,8 @@ public class ServerHandler extends SimpleChannelInboundHandler {
         } else {
             String url = req.uri();
             log.info("url:{}", url);
-            String deviceId = url.replace("/ws/", "");
+            String deviceId = url.replace(websocketPath + "/", "");
             log.info("deviceId:{}", deviceId);
-//            if (!StringUtils.hasText(userId)) {
-//                sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND));
-//                return;
-//            }
-//            NettyConfig.userMap.put(userId, ctx);
             NettyConfig.deviceIdChannelIdMap.put(deviceId, ctx.channel().id().toString());
             wsh.handshake(ctx.channel(), req);
         }

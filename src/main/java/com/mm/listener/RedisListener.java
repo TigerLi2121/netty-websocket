@@ -11,9 +11,6 @@ import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-
 /**
  * redis listener
  *
@@ -32,6 +29,10 @@ public class RedisListener implements MessageListener {
         if (1 == wsBody.getInt("type")) {
             String toDeviceId = wsBody.getStr("to_device_id");
             String channelId = NettyConfig.deviceIdChannelIdMap.get(toDeviceId);
+            if (channelId == null) {
+                log.debug("toDeviceId[{}] not exist", toDeviceId);
+                return;
+            }
             Channel channel = NettyConfig.channelIdChannelMap.get(channelId);
             if (channel == null) {
                 log.debug("client not exist");
@@ -39,10 +40,7 @@ public class RedisListener implements MessageListener {
             }
             channel.writeAndFlush(wsMsg);
         } else {
-            //服务端向每个连接上来的客户端发送消息
-            NettyConfig.channelIdChannelMap.forEach((k, v) -> {
-                v.writeAndFlush(wsMsg);
-            });
+            NettyConfig.group.writeAndFlush(wsMsg);
         }
     }
 }
