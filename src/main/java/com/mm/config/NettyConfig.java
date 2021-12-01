@@ -33,6 +33,21 @@ public class NettyConfig {
     public static Map<String, String> deviceIdChannelIdMap = new ConcurrentHashMap<>();
 
     /**
+     * 根据channelId获取设备id
+     *
+     * @param channelId
+     * @return
+     */
+    public static String getDeviceId(String channelId) {
+        for (Map.Entry<String, String> entry : deviceIdChannelIdMap.entrySet()) {
+            if (entry.getValue().equals(channelId)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    /**
      * add cache channel
      *
      * @param channel

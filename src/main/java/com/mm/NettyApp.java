@@ -1,6 +1,7 @@
 package com.mm;
 
 import com.mm.handler.ServerHandler;
+import com.mm.handler.ServerIdleStateHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -50,6 +51,7 @@ public class NettyApp implements ApplicationRunner {
                             .addLast(new HttpServerCodec())
                             .addLast(new HttpObjectAggregator(65536))
                             .addLast(new ChunkedWriteHandler())
+                            .addLast(new ServerIdleStateHandler())
                             .addLast(new ServerHandler(WEBSOCKET_PATH));
                 }
             });
