@@ -54,7 +54,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         String channelId = ctx.channel().id().toString();
         NettyConfig.addChannel(ctx.channel());
-        log.debug("客户端加入连接 channelId{} 当前在线总数:{}", channelId, NettyConfig.channelIdChannelMap.size());
+        log.debug("客户端加入连接 channelId:{} 当前在线总数:{}", channelId, NettyConfig.channelIdChannelMap.size());
     }
 
     /**
@@ -68,7 +68,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
         String channelId = ctx.channel().id().toString();
         String deviceId = NettyConfig.getDeviceId(channelId);
         NettyConfig.delChannel(channelId);
-        log.debug("客户端断开连接 channelId{} deviceId:{} 当前在线总数:{}", channelId, deviceId, NettyConfig.channelIdChannelMap.size());
+        log.debug("客户端断开连接 channelId:{} deviceId:{} 当前在线总数:{}", channelId, deviceId, NettyConfig.channelIdChannelMap.size());
     }
 
     /**
@@ -82,7 +82,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         String channelId = ctx.channel().id().toString();
         String deviceId = NettyConfig.getDeviceId(channelId);
-        log.debug("客户端异常断开连接 channelId{} deviceId:{} 当前在线总数:{}", channelId, deviceId, NettyConfig.channelIdChannelMap.size());
+        log.debug("客户端异常断开连接 channelId:{} deviceId:{} 当前在线总数:{}", channelId, deviceId, NettyConfig.channelIdChannelMap.size());
         log.error("exceptionCaught e:", cause.getMessage());
         NettyConfig.delChannel(channelId);
         ctx.close();

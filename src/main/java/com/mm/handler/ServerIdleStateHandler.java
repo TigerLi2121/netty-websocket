@@ -28,7 +28,7 @@ public class ServerIdleStateHandler extends IdleStateHandler {
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
         String channelId = ctx.channel().id().toString();
         String deviceId = NettyConfig.getDeviceId(channelId);
-        log.debug("{} 秒内没有读取到数据,关闭连接 channelId{} deviceId:{} 当前在线总数:{}", READER_IDLE_TIME,
+        log.debug("{} 秒内没有读取到数据,关闭连接 channelId:{} deviceId:{} 当前在线总数:{}", READER_IDLE_TIME,
                 channelId, deviceId, NettyConfig.channelIdChannelMap.size());
         ctx.channel().close();
 
