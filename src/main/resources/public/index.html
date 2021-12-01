@@ -41,7 +41,6 @@
         //判断当前浏览器是否支持WebSocket
         if ('WebSocket' in window) {
             ws = new WebSocket("ws://127.0.0.1:8888/ws/" + username);
-            // ws = new WebSocket("ws://test.ximalayaos.com/gpws/" + username);
         } else {
             alert('Not support websocket')
         }
@@ -49,24 +48,12 @@
         //连接成功建立的回调方法
         ws.onopen = function (event) {
             setMessageInnerHTML("成功建立连接");
-            var sendData = {
-                type: 0,
-                msg: {"a": 2, "b": 2}
-            }
-            console.log('readyState', ws.readyState)
-            // 发送测试数据
-            ws.send(
-                JSON.stringify(sendData)
-            )
         }
 
         //接收到消息的回调方法
-        // ws.onmessage = function (event) {
-        //     setMessageInnerHTML(event.data);
-        // }
-        ws.addEventListener('message', function (event) {
+        ws.onmessage = function (event) {
             setMessageInnerHTML(event.data);
-        })
+        }
 
         //连接关闭的回调方法
         ws.onclose = function () {
