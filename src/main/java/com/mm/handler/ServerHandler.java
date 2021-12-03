@@ -113,15 +113,11 @@ public class ServerHandler extends SimpleChannelInboundHandler {
         //文本接收和发送
         String msg = ((TextWebSocketFrame) frame).text();
         // 判断是否是自定义ping消息
-        if ("ping".equals(msg)) {
-            ctx.channel().writeAndFlush(new TextWebSocketFrame("pong"));
-        } else {
-            String channelId = ctx.channel().id().toString();
-            String deviceId = NettyConfig.getDeviceId(channelId);
-            log.debug("channelId:{} deviceId:{} json msg:{}", channelId, deviceId, msg);
-            RedisUtil.redisTemplate.convertAndSend(NettyConfig.NETTY_TOPIC,
-                    JSONUtil.toJsonStr(new WsMsgDto(channelId, msg)));
-        }
+        String channelId = ctx.channel().id().toString();
+        String deviceId = NettyConfig.getDeviceId(channelId);
+        log.debug("channelId:{} deviceId:{} json msg:{}", channelId, deviceId, msg);
+        RedisUtil.redisTemplate.convertAndSend(NettyConfig.NETTY_TOPIC,
+                JSONUtil.toJsonStr(new WsMsgDto(channelId, msg)));
     }
 
 
