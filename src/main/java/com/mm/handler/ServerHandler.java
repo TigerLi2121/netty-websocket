@@ -101,7 +101,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
         }
         //判断是否是ping消息
         if (frame instanceof PingWebSocketFrame) {
-            ctx.channel().write(new PongWebSocketFrame(frame.content().retain()));
+            ctx.channel().writeAndFlush(new PongWebSocketFrame(frame.content().retain()));
             return;
         }
         //判断是否是二进制消息
@@ -112,11 +112,16 @@ public class ServerHandler extends SimpleChannelInboundHandler {
         }
         //文本接收和发送
         String msg = ((TextWebSocketFrame) frame).text();
-        String channelId = ctx.channel().id().toString();
-        String deviceId = NettyConfig.getDeviceId(channelId);
-        log.debug("channelId:{} deviceId:{} json msg:{}", channelId, deviceId, msg);
-        RedisUtil.redisTemplate.convertAndSend(NettyConfig.NETTY_TOPIC,
-                JSONUtil.toJsonStr(new WsMsgDto(channelId, msg)));
+        // 判断是否是自定义ping消息
+        if ("ping".equals(msg)) {
+            ctx.channel().writeAndFlush(new TextWebSocketFrame("pong"));
+        } else {
+            String channelId = ctx.channel().id().toString();
+            String deviceId = NettyConfig.getDeviceId(channelId);
+            log.debug("channelId:{} deviceId:{} json msg:{}", channelId, deviceId, msg);
+            RedisUtil.redisTemplate.convertAndSend(NettyConfig.NETTY_TOPIC,
+                    JSONUtil.toJsonStr(new WsMsgDto(channelId, msg)));
+        }
     }
 
 
@@ -148,7 +153,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
     }
 
     /**
-     * 服务端想客户端发送响应消息
+     * 发送响应消息
      *
      * @param ctx
      * @param req

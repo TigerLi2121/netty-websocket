@@ -2,9 +2,6 @@ package com.mm.config;
 
 import com.mm.listener.RedisListener;
 import io.netty.channel.Channel;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -23,8 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NettyConfig {
 
     public static final String NETTY_TOPIC = "netty_topic";
-
-    public static ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
     public static Map<String, Channel> channelIdChannelMap = new ConcurrentHashMap<>();
     /**
@@ -53,7 +48,6 @@ public class NettyConfig {
      * @param channel
      */
     public static void addChannel(Channel channel) {
-        group.add(channel);
         channelIdChannelMap.put(channel.id().toString(), channel);
     }
 
@@ -63,7 +57,6 @@ public class NettyConfig {
      * @param channelId
      */
     public static void delChannel(String channelId) {
-        group.remove(channelIdChannelMap.get(channelId));
         channelIdChannelMap.remove(channelId);
         deviceIdChannelIdMap.forEach((k, v) -> {
             if (v.equals(channelId)) {

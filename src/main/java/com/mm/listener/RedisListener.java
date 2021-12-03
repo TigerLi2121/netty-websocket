@@ -25,7 +25,6 @@ public class RedisListener implements MessageListener {
         log.debug("topic:{} body:{}", new String(message.getChannel()), body);
         WsMsgDto wsMsgDto = JSONUtil.toBean(body, WsMsgDto.class);
         JSONObject wsBody = JSONUtil.parseObj(wsMsgDto.getBody());
-        TextWebSocketFrame wsMsg = new TextWebSocketFrame(wsBody.getStr("msg"));
         if (1 == wsBody.getInt("type")) {
             String toDeviceId = wsBody.getStr("to_device_id");
             String channelId = NettyConfig.deviceIdChannelIdMap.get(toDeviceId);
@@ -38,9 +37,12 @@ public class RedisListener implements MessageListener {
                 log.debug("client not exist");
                 return;
             }
-            channel.writeAndFlush(wsMsg);
+            channel.writeAndFlush(new TextWebSocketFrame(wsBody.getStr("msg")));
         } else {
-            NettyConfig.group.writeAndFlush(wsMsg);
+            NettyConfig.channelIdChannelMap.forEach((k, v) -> {
+                v.writeAndFlush(new TextWebSocketFrame(wsBody.getStr("msg")));
+            });
+//            NettyConfig.group.writeAndFlush(wsMsg);
         }
     }
 }

@@ -48,6 +48,7 @@
         //连接成功建立的回调方法
         ws.onopen = function (event) {
             setMessageInnerHTML("成功建立连接");
+            ws.send('ping');
         }
 
         //接收到消息的回调方法
