@@ -2,6 +2,7 @@ package com.mm.config;
 
 import com.mm.listener.RedisListener;
 import io.netty.channel.Channel;
+import io.netty.util.AttributeKey;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -21,25 +22,18 @@ public class NettyConfig {
 
     public static final String NETTY_TOPIC = "netty_topic";
 
-    public static Map<String, Channel> channelIdChannelMap = new ConcurrentHashMap<>();
-    /**
-     * 设备id - channelId
-     */
-    public static Map<String, String> deviceIdChannelIdMap = new ConcurrentHashMap<>();
+    public static Map<String, Channel> deviceIdChannelMap = new ConcurrentHashMap<>();
+
+    static AttributeKey<String> deviceIdKey = AttributeKey.valueOf("deviceId");
 
     /**
-     * 根据channelId获取设备id
+     * 根据channel获取设备id
      *
-     * @param channelId
+     * @param channel
      * @return
      */
-    public static String getDeviceId(String channelId) {
-        for (Map.Entry<String, String> entry : deviceIdChannelIdMap.entrySet()) {
-            if (entry.getValue().equals(channelId)) {
-                return entry.getKey();
-            }
-        }
-        return null;
+    public static String getDeviceId(Channel channel) {
+        return channel.attr(deviceIdKey).get();
     }
 
     /**
@@ -47,22 +41,18 @@ public class NettyConfig {
      *
      * @param channel
      */
-    public static void addChannel(Channel channel) {
-        channelIdChannelMap.put(channel.id().toString(), channel);
+    public static void addChannel(Channel channel, String deviceId) {
+        deviceIdChannelMap.put(deviceId, channel);
+        channel.attr(deviceIdKey).set(deviceId);
     }
 
     /**
      * delete cache channel
      *
-     * @param channelId
+     * @param deviceId
      */
-    public static void delChannel(String channelId) {
-        channelIdChannelMap.remove(channelId);
-        deviceIdChannelIdMap.forEach((k, v) -> {
-            if (v.equals(channelId)) {
-                deviceIdChannelIdMap.remove(k);
-            }
-        });
+    public static void delChannel(String deviceId) {
+        deviceIdChannelMap.remove(deviceId);
     }
 
     @Bean

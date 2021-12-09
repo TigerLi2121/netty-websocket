@@ -27,22 +27,16 @@ public class RedisListener implements MessageListener {
         JSONObject wsBody = JSONUtil.parseObj(wsMsgDto.getBody());
         if (1 == wsBody.getInt("type")) {
             String toDeviceId = wsBody.getStr("to_device_id");
-            String channelId = NettyConfig.deviceIdChannelIdMap.get(toDeviceId);
-            if (channelId == null) {
-                log.debug("toDeviceId[{}] not exist", toDeviceId);
+            Channel toChannel = NettyConfig.deviceIdChannelMap.get(toDeviceId);
+            if (toChannel == null) {
+                log.debug("toChannel toDeviceId[{}] not exist", toDeviceId);
                 return;
             }
-            Channel channel = NettyConfig.channelIdChannelMap.get(channelId);
-            if (channel == null) {
-                log.debug("client not exist");
-                return;
-            }
-            channel.writeAndFlush(new TextWebSocketFrame(wsBody.getStr("msg")));
+            toChannel.writeAndFlush(new TextWebSocketFrame(wsBody.getStr("msg")));
         } else {
-            NettyConfig.channelIdChannelMap.forEach((k, v) -> {
+            NettyConfig.deviceIdChannelMap.forEach((k, v) -> {
                 v.writeAndFlush(new TextWebSocketFrame(wsBody.getStr("msg")));
             });
-//            NettyConfig.group.writeAndFlush(wsMsg);
         }
     }
 }

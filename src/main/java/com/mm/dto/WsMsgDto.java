@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class WsMsgDto {
 
-    private String channelId;
+    private String deviceId;
 
     private String body;
 

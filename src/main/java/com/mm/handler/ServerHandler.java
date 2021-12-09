@@ -37,7 +37,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         String channelId = ctx.channel().id().toString();
-        log.debug("channelId:{} deviceId:{} msg:{}", channelId, NettyConfig.getDeviceId(channelId), msg);
+        log.debug("channelId:{} deviceId:{} msg:{}", channelId, NettyConfig.getDeviceId(ctx.channel()), msg);
         // HTTP接入
         if (msg instanceof FullHttpRequest) {
             handHttpRequest(ctx, (FullHttpRequest) msg);
@@ -53,8 +53,7 @@ public class ServerHandler extends SimpleChannelInboundHandler {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         String channelId = ctx.channel().id().toString();
-        NettyConfig.addChannel(ctx.channel());
-        log.debug("客户端加入连接 channelId:{} 当前在线总数:{}", channelId, NettyConfig.channelIdChannelMap.size());
+        log.debug("客户端加入连接 channelId[{}]", channelId);
     }
 
     /**
@@ -66,9 +65,9 @@ public class ServerHandler extends SimpleChannelInboundHandler {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String channelId = ctx.channel().id().toString();
-        String deviceId = NettyConfig.getDeviceId(channelId);
-        NettyConfig.delChannel(channelId);
-        log.debug("客户端断开连接 channelId:{} deviceId:{} 当前在线总数:{}", channelId, deviceId, NettyConfig.channelIdChannelMap.size());
+        String deviceId = NettyConfig.getDeviceId(ctx.channel());
+        NettyConfig.delChannel(deviceId);
+        log.debug("客户端断开连接 channelId:{} deviceId:{} 当前在线总数:{}", channelId, deviceId, NettyConfig.deviceIdChannelMap.size());
     }
 
     /**
@@ -81,10 +80,10 @@ public class ServerHandler extends SimpleChannelInboundHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         String channelId = ctx.channel().id().toString();
-        String deviceId = NettyConfig.getDeviceId(channelId);
-        log.debug("客户端异常断开连接 channelId:{} deviceId:{} 当前在线总数:{}", channelId, deviceId, NettyConfig.channelIdChannelMap.size());
+        String deviceId = NettyConfig.getDeviceId(ctx.channel());
+        log.debug("exceptionCaught channelId[{}] deviceId[{}] online client num[{}]", channelId, deviceId, NettyConfig.deviceIdChannelMap.size());
         log.error("exceptionCaught e:", cause.getMessage());
-        NettyConfig.delChannel(channelId);
+        NettyConfig.delChannel(deviceId);
         ctx.close();
     }
 
@@ -114,10 +113,10 @@ public class ServerHandler extends SimpleChannelInboundHandler {
         String msg = ((TextWebSocketFrame) frame).text();
         // 判断是否是自定义ping消息
         String channelId = ctx.channel().id().toString();
-        String deviceId = NettyConfig.getDeviceId(channelId);
-        log.debug("channelId:{} deviceId:{} json msg:{}", channelId, deviceId, msg);
+        String deviceId = NettyConfig.getDeviceId(ctx.channel());
+        log.debug("channelId[{}] deviceId[{}] json msg[{}]", channelId, deviceId, msg);
         RedisUtil.redisTemplate.convertAndSend(NettyConfig.NETTY_TOPIC,
-                JSONUtil.toJsonStr(new WsMsgDto(channelId, msg)));
+                JSONUtil.toJsonStr(new WsMsgDto(deviceId, msg)));
     }
 
 
@@ -142,8 +141,8 @@ public class ServerHandler extends SimpleChannelInboundHandler {
         } else {
             String url = req.uri();
             String deviceId = url.replace(websocketPath + "/", "");
-            log.info("url:{} deviceId:{} channelId:{}", url, deviceId, ctx.channel().id());
-            NettyConfig.deviceIdChannelIdMap.put(deviceId, ctx.channel().id().toString());
+            NettyConfig.addChannel(ctx.channel(), deviceId);
+            log.info("url[{}] deviceId[{}] channelId[{}] online client num[{}]", url, deviceId, ctx.channel().id(), NettyConfig.deviceIdChannelMap.size());
             wsh.handshake(ctx.channel(), req);
         }
     }
